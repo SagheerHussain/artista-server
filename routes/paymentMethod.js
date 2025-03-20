@@ -6,7 +6,7 @@ const { createPaymentMethod, getPaymentMethods, updatePaymentMethod, deletePayme
 const { authenticateToken, admin } = require('../middlewares/authorization');
 
 router.post('/', authenticateToken, admin, createPaymentMethod );
-router.get('/', authenticateToken, admin, getPaymentMethods );
+router.get('/', authenticateToken, getPaymentMethods );
 router.put('/update/:id', authenticateToken, admin, updatePaymentMethod );
 router.delete('/delete/:id', authenticateToken, admin, deletePaymentMethod );
 

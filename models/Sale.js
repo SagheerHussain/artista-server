@@ -11,7 +11,7 @@ const saleSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["Pending", "Partially Paid", "Fully Paid"],
-    default: "Pending",
+    default: "Partially Paid",
   },
   paymentMethod: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,10 +20,10 @@ const saleSchema = new mongoose.Schema({
   },
   month: { type: String, required: true },
   year: { type: Number, required: true },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  deadline: { type: Date, required: true },
-  leadDate: { type: Date, default: Date.now },
+  startDate: { type: String, required: true },
+  endDate: { type: String, required: true },
+  deadline: { type: String, required: true },
+  leadDate: { type: String, default: Date.now },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
 

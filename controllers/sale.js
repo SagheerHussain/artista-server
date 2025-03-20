@@ -1,5 +1,6 @@
 const Sale = require("../models/Sale");
 const mongoose = require("mongoose");
+const User = require("../models/User");
 
 const getSales = async (req, res) => {
   try {
@@ -18,14 +19,18 @@ const getRevenue = async (req, res) => {
       {
         $group: {
           _id: null, // Group all documents
-          totalSalesAmount: { $sum: "$totalAmount" } // Sum of totalAmount field
-        }
-      }
+          totalSalesAmount: { $sum: "$totalAmount" }, // Sum of totalAmount field
+        },
+      },
     ]);
     const totalAmount = result[0]?.totalSalesAmount || 0;
     res
       .status(200)
-      .json({ success: true, totalAmount, message: "Revenue fetched successfully" });
+      .json({
+        success: true,
+        totalAmount,
+        message: "Revenue fetched successfully",
+      });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -44,26 +49,30 @@ const getPendingAmount = async (req, res) => {
     const totalAmount = pendingAmount[0]?.pendingAmount || 0;
     res
       .status(200)
-      .json({ success: true, totalAmount, message: "Pending Amount fetched successfully" });
+      .json({
+        success: true,
+        totalAmount,
+        message: "Pending Amount fetched successfully",
+      });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-}
+};
 
 const getTotalReceivedAmount = async (req, res) => {
   try {
     const result = await Sale.aggregate([
       {
         $project: {
-          totalReceived: { $add: ["$upfrontAmount", "$receivedAmount"] } // Add both fields per sale
-        }
+          totalReceived: { $add: ["$upfrontAmount", "$receivedAmount"] }, // Add both fields per sale
+        },
       },
       {
         $group: {
           _id: null,
-          totalReceivedAmount: { $sum: "$totalReceived" } // Sum of all
-        }
-      }
+          totalReceivedAmount: { $sum: "$totalReceived" }, // Sum of all
+        },
+      },
     ]);
 
     const totalReceivedAmount = result[0]?.totalReceivedAmount || 0;
@@ -71,9 +80,9 @@ const getTotalReceivedAmount = async (req, res) => {
     res.status(200).json({
       success: true,
       totalReceivedAmount,
-      message: "Total Received Amount (Upfront + Received) calculated successfully"
+      message:
+        "Total Received Amount (Upfront + Received) calculated successfully",
     });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -82,15 +91,14 @@ const getTotalReceivedAmount = async (req, res) => {
 const getUniqueClients = async (req, res) => {
   try {
     // Get distinct client names
-    const uniqueClients = await Sale.distinct('clientName');
+    const uniqueClients = await Sale.distinct("clientName");
 
     res.status(200).json({
       success: true,
       totalClients: uniqueClients.length,
       uniqueClients,
-      message: "Unique client names fetched successfully"
+      message: "Unique client names fetched successfully",
     });
-
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -140,7 +148,7 @@ const getRevenueByEmployee = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-}
+};
 
 const getPendingAmountByEmployee = async (req, res) => {
   try {
@@ -148,7 +156,10 @@ const getPendingAmountByEmployee = async (req, res) => {
     const sales = await Sale.find({ user: employeeId }).populate(
       "user paymentMethod"
     );
-    const totalAmount = sales.reduce((acc, sale) => acc + sale.remainingAmount, 0);
+    const totalAmount = sales.reduce(
+      (acc, sale) => acc + sale.remainingAmount,
+      0
+    );
     res.status(200).json({
       success: true,
       totalAmount,
@@ -157,7 +168,7 @@ const getPendingAmountByEmployee = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-}
+};
 
 const getRecieveAmountByEmployee = async (req, res) => {
   try {
@@ -165,7 +176,10 @@ const getRecieveAmountByEmployee = async (req, res) => {
     const sales = await Sale.find({ user: employeeId }).populate(
       "user paymentMethod"
     );
-    const totalAmount = sales.reduce((acc, sale) => acc + (sale.receivedAmount + sale.upfrontAmount), 0);
+    const totalAmount = sales.reduce(
+      (acc, sale) => acc + (sale.receivedAmount + sale.upfrontAmount),
+      0
+    );
     res.status(200).json({
       success: true,
       totalAmount,
@@ -174,7 +188,7 @@ const getRecieveAmountByEmployee = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-}
+};
 
 const getClientsByEmployee = async (req, res) => {
   try {
@@ -182,7 +196,7 @@ const getClientsByEmployee = async (req, res) => {
     const sales = await Sale.find({ user: employeeId }).populate(
       "user paymentMethod"
     );
-    const clients = sales.map(sale => sale.clientName);
+    const clients = sales.map((sale) => sale.clientName);
     const uniqueClients = [...new Set(clients)];
     res.status(200).json({
       success: true,
@@ -192,7 +206,7 @@ const getClientsByEmployee = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
-}
+};
 
 const getEmployeeCurrentSalesAmount = async (req, res) => {
   try {
@@ -332,6 +346,15 @@ const createSale = async (req, res) => {
       leadDate,
       user,
     } = req.body;
+
+    const userId = await User.findById({ _id: user });
+    if (!userId) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     const sale = await Sale.create({
       clientName,
       projectTitle,
@@ -366,6 +389,7 @@ const updateSale = async (req, res) => {
       projectTitle,
       summary,
       totalAmount,
+      upfrontAmount,
       receivedAmount,
       status,
       paymentMethod,
@@ -386,31 +410,48 @@ const updateSale = async (req, res) => {
       });
     }
 
-    const updateSale = await Sale.findByIdAndUpdate(
+    // Safe fallback:
+    const upfront =
+      typeof upfrontAmount !== "undefined"
+        ? Number(upfrontAmount)
+        : sale.upfrontAmount;
+    const received =
+      typeof receivedAmount !== "undefined"
+        ? Number(receivedAmount)
+        : sale.receivedAmount;
+    const total =
+      typeof totalAmount !== "undefined"
+        ? Number(totalAmount)
+        : sale.totalAmount;
+    const remaining = total - (received + upfront);
+
+    const updatedSale = await Sale.findByIdAndUpdate(
       { _id: id },
       {
-        clientName,
-        projectTitle,
-        summary,
-        totalAmount,
-        receivedAmount,
-        remainingAmount: totalAmount - (receivedAmount + sale.upfrontAmount),
-        status,
-        paymentMethod,
-        month,
-        year,
-        startDate,
-        endDate,
-        deadline,
-        leadDate,
-        user,
+        clientName: clientName || sale.clientName,
+        projectTitle: projectTitle || sale.projectTitle,
+        summary: summary || sale.summary,
+        upfrontAmount: upfront,
+        totalAmount: total,
+        receivedAmount: received,
+        remainingAmount: remaining,
+        status: status || sale.status,
+        paymentMethod: paymentMethod || sale.paymentMethod,
+        month: month || sale.month,
+        year: year || sale.year,
+        startDate: startDate || sale.startDate,
+        endDate: endDate || sale.endDate,
+        deadline: deadline || sale.deadline,
+        leadDate: leadDate || sale.leadDate,
+        user: user || sale.user,
       },
       { new: true }
     );
+
     res.status(200).json({
       success: true,
       message: "Sale updated successfully",
-      sale: updateSale,
+      sale: updatedSale,
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
