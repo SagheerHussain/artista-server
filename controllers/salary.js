@@ -34,8 +34,8 @@ const getSalaryById = async (req, res) => {
 // Create new salary
 const createSalary = async (req, res) => {
   try {
-    const { employee, amount, bonus, status, paidDate } = req.body;
-    if (!employee || !amount || !bonus || !status || !paidDate) {
+    const { employee, amount, bonus, status, paidDate, totalAmount } = req.body;
+    if (!employee || !amount || !bonus || !status || !paidDate || !totalAmount) {
       return res
         .status(400)
         .json({ success: false, message: "All fields are required" });
@@ -48,10 +48,11 @@ const createSalary = async (req, res) => {
     }
     const newSalary = await Salary.create({
       employee: user._id,
-      amount,
-      bonus,
+      amount: parseInt(amount),
+      bonus: parseInt(bonus),
       status,
       paidDate,
+      totalAmount: parseInt(totalAmount)
     });
     res.status(200).json({
       success: true,
@@ -108,9 +109,7 @@ const deleteSalary = async (req, res) => {
 // Search salaries by employee
 const searchSalariesByEmployee = async (req, res) => {
     try {
-        const salaries = await Salary.find({ employee: req.params.employeeId }).populate('employee');
-        if (salaries.length === 0) return res.status(404).json({ success: false, message: 'No salary records found for this employee' });
-        res.status(200).json({ success: true, salaries, message: 'Salary records fetched successfully' });
+        
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error", error });
     }

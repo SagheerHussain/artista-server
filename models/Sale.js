@@ -20,9 +20,9 @@ const saleSchema = new mongoose.Schema({
   },
   month: { type: String, required: true },
   year: { type: Number, required: true },
-  startDate: { type: String, required: true },
-  endDate: { type: String, required: true },
-  deadline: { type: String, required: true },
+  startDate: { type: String, default: Date.now },
+  endDate: { type: String, default: Date.now },
+  deadline: { type: String, default: Date.now },
   leadDate: { type: String, default: Date.now },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
