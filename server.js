@@ -43,6 +43,7 @@ const salaryRoutes = require("./routes/salary");
 const salesRoutes = require("./routes/sale");
 
 // routes
+app.get("/", (req, res) => res.send("Artista API"));
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/payment-method", paymentMethodRoutes);
