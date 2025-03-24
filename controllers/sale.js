@@ -129,22 +129,22 @@ const getSalesByEmployeeId = async (req, res) => {
   }
 };
 
-const getRevenueByEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const sales = await Sale.find({ user: employeeId }).populate(
-      "user paymentMethod"
-    );
-    const totalAmount = sales.reduce((acc, sale) => acc + sale.totalAmount, 0);
-    res.status(200).json({
-      success: true,
-      totalAmount,
-      message: "Employee Revenue fetched successfully",
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
+// const getRevenueByEmployee = async (req, res) => {
+//   try {
+//     const { employeeId } = req.params;
+//     const sales = await Sale.find({ user: employeeId }).populate(
+//       "user paymentMethod"
+//     );
+//     const totalAmount = sales.reduce((acc, sale) => acc + sale.totalAmount, 0);
+//     res.status(200).json({
+//       success: true,
+//       totalAmount,
+//       message: "Employee Revenue fetched successfully",
+//     });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
 
 const getPendingAmountByEmployee = async (req, res) => {
   try {
@@ -178,7 +178,7 @@ const getRecieveAmountByEmployee = async (req, res) => {
     );
     res.status(200).json({
       success: true,
-      totalAmount,
+      totalReceivedAmount: totalAmount,
       message: "Employee Received Amount fetched successfully",
     });
   } catch (err) {
@@ -196,10 +196,102 @@ const getClientsByEmployee = async (req, res) => {
     const uniqueClients = [...new Set(clients)];
     res.status(200).json({
       success: true,
-      clients: uniqueClients,
+      totalClients: uniqueClients.length,
       message: "Employee Clients fetched successfully",
     });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+const getFilteredSales = async (req, res) => {
+  try {
+    const { month, year, search, status, user } = req.query;
+
+    let query = {};
+
+    // Employee filter (only if valid ObjectId)
+    if (user && mongoose.Types.ObjectId.isValid(user)) {
+      query.user = user;
+    }
+
+    // Month filter
+    if (month) {
+      query.month = { $regex: new RegExp(`^${month}$`, "i") }; // case-insensitive
+    }
+
+    // Year filter
+    if (year) {
+      query.year = Number(year);
+    }
+
+    // Status filter
+    if (status) {
+      query.status = status;
+    }
+
+    // Search filter (clientName or projectTitle)
+    if (search) {
+      query.$or = [
+        { clientName: { $regex: search, $options: "i" } },
+        { projectTitle: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const sales = await Sale.find(query).populate("user paymentMethod");
+
+    res.status(200).json({
+      success: true,
+      sales,
+      message: "Filtered Sales fetched successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+const getFilteredSalesByEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { month, year, status, search } = req.query;
+
+    let query = {
+      user: employeeId, // Employee filter
+    };
+
+    // Apply Month Filter
+    if (month && month !== "") {
+      query.month = { $regex: new RegExp(`^${month}$`, "i") }; // case-insensitive
+    }
+
+    // Apply Year Filter
+    if (year && year !== "") {
+      query.year = parseInt(year);
+    }
+
+    // Apply Status Filter
+    if (status && status !== "") {
+      query.status = status;
+    }
+
+    // Apply Search Filter (clientName OR projectTitle)
+    if (search && search !== "") {
+      query.$or = [
+        { clientName: { $regex: search, $options: "i" } },
+        { projectTitle: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const sales = await Sale.find(query).populate("user paymentMethod");
+
+    res.status(200).json({
+      success: true,
+      sales,
+      message: "Filtered sales fetched successfully",
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -210,21 +302,14 @@ const getEmployeeCurrentSalesAmount = async (req, res) => {
 
     const now = new Date();
 
-    // Current month
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-      23,
-      59,
-      59
-    );
+    // Current month range
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Current year
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
-
+    // Current year range
+    const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    
     // Monthly Sales
     const monthlySales = await Sale.aggregate([
       {
@@ -274,56 +359,6 @@ const getEmployeeCurrentSalesAmount = async (req, res) => {
   }
 };
 
-// const getEmployeeSalesByMonthYear = async (req, res) => {
-//   try {
-//     let { employeeId, month, year } = req.params;
-
-//     // Normalize input - month lowercase, year as string
-//     month = month.toLowerCase();
-//     year = year.toString();
-
-//     const sales = await Sale.find({
-//       user: employeeId,
-//       month: { $regex: new RegExp(`^${month}$`, "i") }, // Case-insensitive regex
-//       year: year,
-//     }).populate("paymentMethod user");
-
-//     if (sales.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "No sales found for the specified month and year",
-//       });
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       sales,
-//       message: "Employee Sales by Month and Year fetched successfully",
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-const getSalesByMonthYear = async (req, res) => {
-  try {
-    const { month, year } = req.query;
-
-    const sales = await Sale.find({
-      month: month,
-      year: year,
-    }).populate("user paymentMethod");
-
-    res.status(200).json({
-      success: true,
-      sales,
-      message: "Sales by Month and Year fetched successfully",
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
 const createSale = async (req, res) => {
   try {
     const {
@@ -334,8 +369,6 @@ const createSale = async (req, res) => {
       upfrontAmount,
       status,
       paymentMethod,
-      month,
-      year,
       user,
     } = req.body;
 
@@ -347,6 +380,25 @@ const createSale = async (req, res) => {
       });
     }
 
+    const date = new Date();
+
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const currentMonth = months[date.getMonth()];
+    const currentYear = date.getFullYear();
+
     const sale = await Sale.create({
       clientName,
       projectTitle,
@@ -355,12 +407,9 @@ const createSale = async (req, res) => {
       upfrontAmount,
       status,
       paymentMethod,
-      month,
-      year,
-      startDate,
-      endDate,
-      deadline,
-      leadDate,
+      leadDate: date.toISOString(),
+      month: currentMonth,
+      year: currentYear,
       user,
     });
     res.status(200).json({
@@ -385,12 +434,6 @@ const updateSale = async (req, res) => {
       receivedAmount,
       status,
       paymentMethod,
-      month,
-      year,
-      startDate,
-      endDate,
-      deadline,
-      leadDate,
       user,
     } = req.body;
 
@@ -429,12 +472,6 @@ const updateSale = async (req, res) => {
         remainingAmount: remaining,
         status: status || sale.status,
         paymentMethod: paymentMethod || sale.paymentMethod,
-        month: month || sale.month,
-        year: year || sale.year,
-        startDate: startDate || sale.startDate,
-        endDate: endDate || sale.endDate,
-        deadline: deadline || sale.deadline,
-        leadDate: leadDate || sale.leadDate,
         user: user || sale.user,
       },
       { new: true }
@@ -478,45 +515,105 @@ const bulkDeleteSales = async (req, res) => {
   }
 };
 
-const getFilteredSalesByEmployee = async (req, res) => {
+const getMonthlySalesData = async (req, res) => {
   try {
-    const { employeeId } = req.params;
-    const { month, year, search, status } = req.query;
+    // Array of month names
+    const monthNames = [
+      'January', 'February', 'March', 'April',
+      'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December'
+    ];
 
-    let query = { user: employeeId }; // Employee ka record fix
+    // Get all months from the current year
+    const currentYear = new Date().getFullYear();
+    const allMonths = Array.from({ length: 12 }, (_, i) => ({
+      month: monthNames[i],
+      year: currentYear,
+      totalSales: 0,
+      count: 0
+    }));
 
-    // Month filter
-    if (month) {
-      query.month = { $regex: new RegExp(`^${month}$`, "i") }; // case-insensitive
-    }
+    // Get actual sales data
+    const monthlySalesData = await Sale.aggregate([
+      {
+        $group: {
+          _id: {
+            month: { $month: "$leadDate" },
+            year: { $year: "$leadDate" }
+          },
+          totalSales: { $sum: "$totalAmount" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          month: { $month: { $dateFromParts: { year: "$_id.year", month: "$_id.month", day: 1 } } },
+          totalSales: 1,
+          count: 1,
+          year: "$_id.year"
+        }
+      },
+      {
+        $sort: { year: 1, month: 1 }
+      }
+    ]);
 
-    // Year filter
-    if (year) {
-      query.year = Number(year); // convert string to number
-    }
-
-    // Status filter
-    if (status) {
-      query.status = status;
-    }
-
-    // Search filter (clientName or projectTitle)
-    if (search) {
-      query.$or = [
-        { clientName: { $regex: search, $options: "i" } },
-        { projectTitle: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const sales = await Sale.find(query).populate("user paymentMethod");
+    // Merge actual data with all months
+    const finalData = allMonths.map(month => {
+      const actualData = monthlySalesData.find(sale => 
+        sale.month === monthNames.indexOf(month.month) + 1 && sale.year === month.year
+      );
+      
+      return actualData ? {
+        month: month.month,
+        year: actualData.year,
+        totalSales: actualData.totalSales,
+        count: actualData.count
+      } : month;
+    });
 
     res.status(200).json({
       success: true,
-      sales,
-      message: "Filtered Sales fetched successfully",
+      data: finalData,
+      message: "Monthly sales data fetched successfully"
     });
   } catch (err) {
-    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+const getYearlySalesData = async (req, res) => {
+  try {
+    const yearlySalesData = await Sale.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$leadDate" }
+          },
+          totalSales: { $sum: "$totalAmount" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          totalSales: 1,
+          count: 1
+        }
+      },
+      {
+        $sort: { year: 1 }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: yearlySalesData,
+      message: "Yearly sales data fetched successfully"
+    });
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -530,16 +627,16 @@ module.exports = {
   getSaleById,
   getSalesByEmployeeId,
   getClientsByEmployee,
-  getRevenueByEmployee,
   getPendingAmountByEmployee,
   getRecieveAmountByEmployee,
   getClientsByEmployee,
   getEmployeeCurrentSalesAmount,
-  // getEmployeeSalesByMonthYear,
-  getSalesByMonthYear,
+  getFilteredSales,
   createSale,
   updateSale,
   deleteSale,
   bulkDeleteSales,
   getFilteredSalesByEmployee,
+  getMonthlySalesData,
+  getYearlySalesData
 };

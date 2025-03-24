@@ -9,7 +9,10 @@ const createAccount = async (req, res) => {
     const { name, email, password } = req.body;
 
     // Cloudinary pr dono images upload karni hain
-    const profilePicturePath = await cloudinary.uploader.upload(req.file.path); // ✅ Cloudinary URL
+    let profilePicturePath = '';
+    if (req.file) {
+      profilePicturePath = await cloudinary.uploader.upload(req.file.path); // ✅ Cloudinary URL
+    }
 
     console.log(profilePicturePath, name, email, password);
     const user = await User.findOne({ email });
@@ -36,8 +39,7 @@ const loginAccount = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user =
-      (await User.findOne({ email })) || (await Admin.findOne({ email }));
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res

@@ -11,6 +11,8 @@ const salarySchema = new mongoose.Schema({
   paidDate: { type: Date, required: true },
   bonus: { type: Number, default: 0 },
   totalAmount: { type: Number, default: 0 },
+  month: { type: String, required: true },
+  year: { type: Number, required: true },
   admin: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
 });
 
