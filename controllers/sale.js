@@ -129,23 +129,6 @@ const getSalesByEmployeeId = async (req, res) => {
   }
 };
 
-// const getRevenueByEmployee = async (req, res) => {
-//   try {
-//     const { employeeId } = req.params;
-//     const sales = await Sale.find({ user: employeeId }).populate(
-//       "user paymentMethod"
-//     );
-//     const totalAmount = sales.reduce((acc, sale) => acc + sale.totalAmount, 0);
-//     res.status(200).json({
-//       success: true,
-//       totalAmount,
-//       message: "Employee Revenue fetched successfully",
-//     });
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// };
-
 const getPendingAmountByEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -372,8 +355,15 @@ const createSale = async (req, res) => {
       user,
     } = req.body;
 
-    const userId = await User.findById({ _id: user });
-    if (!userId) {
+    if (!clientName || !projectTitle || !summary || !totalAmount || !upfrontAmount || !status || !paymentMethod || !user) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const isExist = await User.findById({ _id: user });
+    if (!isExist) {
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -399,7 +389,7 @@ const createSale = async (req, res) => {
     const currentMonth = months[date.getMonth()];
     const currentYear = date.getFullYear();
 
-    const sale = await Sale.create({
+    const newSale = await Sale.create({
       clientName,
       projectTitle,
       summary,
@@ -415,7 +405,7 @@ const createSale = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Sale created successfully",
-      sale,
+      newSale,
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });

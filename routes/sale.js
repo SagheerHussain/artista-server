@@ -25,6 +25,8 @@ const {
 
 const router = express.Router();
 
+router.post("/", authenticateToken, createSale);
+
 router.get("/", authenticateToken, admin, getSales);
 router.get("/revenue", authenticateToken,  getRevenue);
 router.get("/total-received-amount", authenticateToken,  getTotalReceivedAmount);
@@ -40,7 +42,6 @@ router.get("/employee/current/sales-amount/:employeeId", authenticateToken, getE
 router.get("/filtered-records/sales", authenticateToken, admin, getFilteredSales);
 router.get("/employee/filtered-records/sales/:employeeId", authenticateToken, getFilteredSalesByEmployee);
 
-router.post("/", authenticateToken, createSale);
 router.put("/update/:id", authenticateToken, updateSale);
 router.delete("/delete/:id", authenticateToken,  deleteSale);
 
