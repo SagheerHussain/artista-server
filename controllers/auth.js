@@ -42,16 +42,14 @@ const loginAccount = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      return res.status(201).json({ success: false, message: "User with this email not found" });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res
-        .status(401)
-        .json({ success: false, message: "Incorrect password" });
+        .status(201)
+        .json({ success: false, message: "Your Password is Incorrect password" });
     }
 
     const token = await jwt.sign({ email: user.email }, process.env.JWT_KEY, {
