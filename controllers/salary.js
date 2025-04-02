@@ -46,9 +46,17 @@ const createSalary = async (req, res) => {
       paidDate,
       totalAmount,
       admin,
-      month,
+      // month,
       year,
     } = req.body;
+    
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    
+    const monthIndex = parseInt(paidDate.split("-")[1], 10) - 1;
+
     if (
       !employee ||
       !amount ||
@@ -56,7 +64,7 @@ const createSalary = async (req, res) => {
       !paidDate ||
       !totalAmount ||
       !admin ||
-      !month ||
+      // !month ||
       !year
     ) {
       return res
@@ -75,7 +83,7 @@ const createSalary = async (req, res) => {
       bonus: Number(bonus) || 0,
       status,
       paidDate,
-      month,
+      month: months[monthIndex],
       year: Number(year),
       totalAmount: Number(totalAmount),
       admin: admin,

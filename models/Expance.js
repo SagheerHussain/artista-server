@@ -5,8 +5,8 @@ const expanceSchema = new mongoose.Schema({
     description: { type: String },
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
-    month: { type: String, required: true },
-    year: { type: String, required: true },
+    month: { type: String },
+    year: { type: String },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'ExpanceCategory', required: true },
     admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', required: true }
 });

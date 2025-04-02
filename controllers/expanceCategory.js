@@ -17,8 +17,11 @@ const getExpanceCategories = async (req, res) => {
 // Create expance category
 const createExpanceCategory = async (req, res) => {
   try {
-    const { name } = req.body;
-    const newExpanceCategory = await ExpanceCategory.create({ name });
+    const { name, admin } = req.body;
+    if (!name || !admin) {
+      return res.status(200).json({ success: false, message: "Name is required" });
+    }
+    const newExpanceCategory = await ExpanceCategory.create({ name, admin });
     res.status(200).json({
       success: true,
       message: "Expance category created successfully",
